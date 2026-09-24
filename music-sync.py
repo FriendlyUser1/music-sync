@@ -26,6 +26,7 @@ def main(
     processes: int,
     delete_extra: bool | None,
     delete_covers: bool | None,
+    ignore: list[str],
     parser: argparse.ArgumentParser,
 ):
 
@@ -47,7 +48,7 @@ def main(
 
     # create mp3 directory name and transcode
     for flac_dir in flac_dir_list:
-        if flac_dir.name in [".stfolder", "Various Artists"]:
+        if flac_dir.name in ignore:
             continue
 
         mp3_dir = mp3_library / flac_dir.name.replace(" [FLAC]", "")
@@ -152,6 +153,12 @@ if __name__ == "__main__":
         help="Number of concurrent transcoding processes, defaults to running nproc",
     )
     parser.add_argument(
+        "-i",
+        "--ignore",
+        action="append",
+        help="Ignore folders in the flac library, use one option per string",
+    )
+    parser.add_argument(
         "--delete-extra",
         action="store_true",
         help="Delete .cue, .log, .m3u and .toc files in the mp3 library",
@@ -170,5 +177,6 @@ if __name__ == "__main__":
         args.processes,
         args.delete_extra,
         args.delete_covers,
+        args.ignore,
         parser,
     )
