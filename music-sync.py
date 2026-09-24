@@ -26,7 +26,7 @@ def main(
     processes: int,
     delete_extra: bool | None,
     delete_covers: bool | None,
-    ignore: list[str],
+    ignore: list[str] | None,
     parser: argparse.ArgumentParser,
 ):
 
@@ -48,7 +48,7 @@ def main(
 
     # create mp3 directory name and transcode
     for flac_dir in flac_dir_list:
-        if flac_dir.name in ignore:
+        if ignore and flac_dir.name in ignore:
             continue
 
         mp3_dir = mp3_library / flac_dir.name.replace(" [FLAC]", "")
