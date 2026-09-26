@@ -19,6 +19,28 @@ optionally delete cover images
 """
 
 
+def run_find(extensions: list[str], dir: Path, delete: bool) -> tuple[bool, str]:
+    args = ["find", str(dir), "-type", "f", "("]
+
+    for ext in extensions:
+        if ext != extensions[0]:
+            args.append("-o")
+        args.append("-iname")
+        args.append(f"*.{ext}")
+
+    args.append(")")
+
+    if delete:
+        args.append("-delete")
+
+    find_process = subprocess.run(args, capture_output=True, text=True)
+
+    if find_process.returncode == 0:
+        return (True, find_process.stdout)
+    else:
+        return (False, find_process.stderr)
+
+
 def main(
     flac_library: Path,
     mp3_library: Path,
@@ -58,7 +80,6 @@ def main(
             continue
 
         print(f"Transcoding {mp3_dir.name}...")
-
         subprocess.run(
             [
                 flac2mp3_bin,
@@ -71,63 +92,32 @@ def main(
         )
 
     if delete_extra:
-        deletion_process = subprocess.run(
-            [
-                "find",
-                mp3_library,
-                "-type",
-                "f",
-                "(",
-                "-iname",
-                "*.log",
-                "-o",
-                "-iname",
-                "*.cue",
-                "-o",
-                "-iname",
-                "*.m3u",
-                "-o",
-                "-iname",
-                "*.toc",
-                ")",
-                "-delete",
-            ],
-            capture_output=True,
-            text=True,
-        )
+        success, output = run_find(["log", "cue", "m3u", "toc"], mp3_library, False)
 
-        if deletion_process.returncode == 0:
-            print("Successfully deleted extra files.")
-        else:
-            parser.error(f"Could not delete extra files:\n{deletion_process.stderr}")
+        if not success:
+            parser.error(f"Problem finding extra files:\n{output}")
+
+        if success and output != "":
+            success, output = run_find(["log", "cue", "m3u", "toc"], mp3_library, True)
+
+            if success:
+                print("Successfully deleted extra files.")
+            else:
+                parser.error(f"Could not delete extra files:\n{output}")
 
     if delete_covers:
-        deletion_process = subprocess.run(
-            [
-                "find",
-                mp3_library,
-                "-type",
-                "f",
-                "(",
-                "-iname",
-                "*.jpg",
-                "-o",
-                "-iname",
-                "*.jpeg",
-                "-o",
-                "-iname",
-                "*.png",
-                ")",
-                "-delete",
-            ],
-            capture_output=True,
-            text=True,
-        )
+        success, output = run_find(["jpg", "jpeg", "png"], mp3_library, False)
 
-        if deletion_process.returncode == 0:
-            print("Successfully deleted cover images.")
-        else:
-            parser.error(f"Could not delete covers:\n{deletion_process.stderr}")
+        if not success:
+            parser.error(f"Problem finding cover images:\n{output}")
+
+        if success and output != "":
+            success, output = run_find(["jpg", "jpeg", "png"], mp3_library, False)
+
+            if success:
+                print("Successfully deleted cover images.")
+            else:
+                parser.error(f"Could not delete cover images:\n{output}")
 
 
 if __name__ == "__main__":
